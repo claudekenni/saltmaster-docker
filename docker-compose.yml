@@ -1,0 +1,41 @@
+---
+version: "3"
+
+services:
+  mom:
+    hostname: mom
+    image: saltstack/salt:latest
+    environment:
+      SALT_SHARED_SECRET: mysecretpassword
+    restart: always
+    volumes:
+    - "./master.d/mom.conf:/etc/salt/master.d/mom.conf"
+    - "/srv/salt/formulas:/srv/salt/formulas"
+    - "/srv/salt/modules:/srv/salt/modules"
+    networks:
+      salt_net: {}
+
+
+  master:
+    command: sh -c "salt-master -d; salt-minion -d; salt-syndic -ldebug"
+    image: saltstack/salt:latest
+    restart: always
+    depends_on:
+      - "mom"
+    volumes:
+      - "./master.d/master.conf:/etc/salt/master.d/master.conf"
+      - "./master.d/syndic.conf:/etc/salt/master.d/syndic.conf"
+      - "./minion.d/minion.conf:/etc/salt/minion.d/minion.conf"
+      - "./pki/master/:/etc/salt/pki/master/"
+      - "/srv/salt:/srv/salt"
+    networks:
+      salt_net: {}
+
+
+networks:
+  salt_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.18.0.0/24
